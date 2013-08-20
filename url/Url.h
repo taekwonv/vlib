@@ -40,6 +40,9 @@ public:
 		return ret;
 	}
 
+	enum {REMOVEDOUBLEQUOTE = 1};
+	static std::basic_string<StringT> encode(const std::basic_string<StringT> &src, bool bRemoveDoubleQuote = false);
+
 private:
     void parse(const StringT *url)
 	{
