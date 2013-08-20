@@ -85,7 +85,7 @@ wstring sstr::join(const vector<wstring> &strings)
 template<class T>
 basic_string<T> format_impl(int (*func_snprintf)(T*, size_t, const T*, va_list), const T *fmt, va_list ap) 
 {
-	int size = 100;
+	int size = 1024;
 	basic_string<T> str;
 	
 	while (1) 
@@ -116,8 +116,7 @@ string sstr::format(const char *fmt, ...)
 }
 
 string sstr::format(const char *fmt, va_list al)
-{	
-	va_start(al, fmt);
+{		
 	return format_impl(vsnprintf, fmt, al);
 }
 
@@ -130,7 +129,6 @@ wstring sstr::format(const wchar_t *fmt, ...)
 
 wstring sstr::format(const wchar_t *fmt, va_list al)
 {	
-	va_start(al, fmt);
 	return format_impl(_vsnwprintf, fmt, al);
 }
 
