@@ -2,30 +2,37 @@
  *	Functionality to manipulate Windows Service
  *
  *	@author : taekwonv@gmail.com
- *	@modified by
- *		[date name]
- *		...
+ *
  */
-
 
 #ifndef MAGENT_WINSERVICE_H
 #define MAGENT_WINSERVICE_H
 
 #include <string>
+#include <functional>
+
+#ifdef _UNICODE
+	#define tstring	wstring
+#else
+	#define tstring	string
+#endif
 
 
 class WinService
 {
 public:
-	static bool CreateService(const std::wstring &binPath, const std::wstring &cfgPath, \
-								const std::wstring &serviceName, const std::wstring &serviceDisplayName);
-	static bool StartService(const std::wstring &serviceName);
-	static bool StopService(const std::wstring &serviceName);	
-	static bool RemoveService(const std::wstring &serviceName);
-	static std::wstring GetLastError() { return s_lastError; }
+	static bool CreateService(LPCTSTR command, LPCTSTR serviceName, LPCTSTR serviceDisplayName);
+	static bool StartService(LPCTSTR serviceName);
+	static bool StopService(LPCTSTR serviceName);	
+	static bool RemoveService(LPCTSTR serviceName);
+	static std::tstring GetLastError() { return s_lastError; }
+
+	//bool BeginService(LPCTSTR serviceName, std::function<void()> onServiceStop);
 
 private:
-	static std::wstring s_lastError;
+	static std::tstring s_lastError;
+	std::function<void()>	m_onServiceStop;
+	std::tstring	m_serviceName;
 };
 
 #endif
