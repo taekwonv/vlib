@@ -7,12 +7,15 @@
  * 
  */
 
-#pragma once
+#ifndef URLCLASSLIB_H
+#define URLCLASSLIB_H
+
 #include <string>
 #include <algorithm>
 #include <cctype>
 #include <functional>
 #include <iterator>
+
 
 template<class StringT>
 class Url 
@@ -47,26 +50,20 @@ private:
     void parse(const StringT *url)
 	{
 		const basic_string<StringT> url_s = url;
-		//const basic_string<StringT> prot_end(L"://");
 		const basic_string<StringT> prot_end(s_constants.prodesc());
-		basic_string<StringT>::const_iterator prot_i = search(url_s.begin(), url_s.end(),
-			prot_end.begin(), prot_end.end());
+		auto prot_i = search(url_s.begin(), url_s.end(), prot_end.begin(), prot_end.end());
 		m_protocol.reserve(distance(url_s.begin(), prot_i));
-		transform(url_s.begin(), prot_i,				
-			back_inserter(m_protocol),
-			ptr_fun<int,int>(tolower)); // protocol is icase
-		if (prot_i == url_s.end())
-			return;
+		transform(url_s.begin(), prot_i, back_inserter(m_protocol), ptr_fun<int,int>(tolower)); // protocol is icase
+		
+		if (prot_i == url_s.end()) return;
+
 		advance(prot_i, prot_end.length());
-		basic_string<StringT>::const_iterator path_i = find(prot_i, url_s.end(), s_constants.slash());
+		auto path_i = find(prot_i, url_s.end(), s_constants.slash());
 		m_host.reserve(distance(prot_i, path_i));
-		transform(prot_i, path_i,
-			back_inserter(m_host),
-			ptr_fun<int,int>(tolower)); // host is icase
-		basic_string<StringT>::const_iterator query_i = find(path_i, url_s.end(), s_constants.qsm());
+		transform(prot_i, path_i, back_inserter(m_host), ptr_fun<int,int>(tolower)); // host is icase
+		auto query_i = find(path_i, url_s.end(), s_constants.qsm());
 		m_path.assign(path_i, query_i);
-		if (query_i != url_s.end())
-			++query_i;
+		if (query_i != url_s.end())	++query_i;
 		m_query.assign(query_i, url_s.end());
 	}
     std::basic_string<StringT> m_url, m_protocol, m_host, m_path, m_query;
@@ -101,3 +98,4 @@ private:
 	static struct Constants<StringT> s_constants;
 };
 
+#endif
