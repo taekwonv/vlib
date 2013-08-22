@@ -27,12 +27,17 @@ public:
 	static bool RemoveService(LPCTSTR serviceName);
 	static std::tstring GetLastError() { return s_lastError; }
 
-	//bool BeginService(LPCTSTR serviceName, std::function<void()> onServiceStop);
+	static bool BeginService(LPCTSTR serviceName, std::function<void(DWORD argc, LPTSTR *argv)> onRun, std::function<void()> onServiceStop);
 
 private:
-	static std::tstring s_lastError;
-	std::function<void()>	m_onServiceStop;
-	std::tstring	m_serviceName;
+	static VOID WINAPI ServiceMain (DWORD argc, LPTSTR *argv);
+	static VOID WINAPI ServiceCtrlHandler(DWORD);
+
+	static std::tstring s_lastError;	
+	static std::tstring	s_serviceName; //for BeginService
+	static SERVICE_STATUS_HANDLE s_hSC;
+	static std::function<void(DWORD argc, LPTSTR *argv)> s_onRun;
+	static std::function<void()> s_onServiceStop;
 };
 
 #endif

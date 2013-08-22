@@ -125,25 +125,94 @@ bool WinService::RemoveService(LPCTSTR serviceName)
 	return true;
 }
 
-VOID WINAPI ServiceCtrlHandler(DWORD)
+
+std::tstring	WinService::s_serviceName; //for BeginService
+SERVICE_STATUS_HANDLE WinService::s_hSC;
+std::function<void(DWORD argc, LPTSTR *argv)> WinService::s_onRun;
+std::function<void()> WinService::s_onServiceStop;
+
+VOID WINAPI WinService::ServiceCtrlHandler(DWORD ctrlCode)
 {
+	SERVICE_STATUS ss;
+	ZeroMemory (&ss, sizeof(ss));    
+	ss.dwServiceType		= SERVICE_WIN32_OWN_PROCESS;
+	ss.dwCurrentState		= SERVICE_START_PENDING;
+	ss.dwControlsAccepted	= SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+	ss.dwWin32ExitCode		= 0;
+	ss.dwServiceSpecificExitCode	= 0;
+	ss.dwCheckPoint			= 0;
+	ss.dwWaitHint			= 0;
+
+	switch (ctrlCode)
+	{
+	case SERVICE_CONTROL_STOP:
+	case SERVICE_CONTROL_SHUTDOWN:
+		ss.dwCurrentState	= SERVICE_STOP_PENDING;
+		ss.dwWaitHint		= 4000;
+		SetServiceStatus(s_hSC, &ss);
+		s_onServiceStop();
+		break;
+	}
 }
 
-VOID WINAPI ServiceMain (DWORD argc, LPTSTR *argv)
+VOID WINAPI WinService::ServiceMain (DWORD argc, LPTSTR *argv)
 {	
-	//RegisterServiceCtrlHandler(serviceName, ServiceCtrlHandler);
+	s_hSC = RegisterServiceCtrlHandler(s_serviceName.c_str(), ServiceCtrlHandler);
+	if (0 == s_hSC)
+	{
+		OutputDebugString("s_hSC NULL");
+		return;
+	}
+
+	SERVICE_STATUS ss;
+	ZeroMemory (&ss, sizeof(ss));    
+	ss.dwServiceType		= SERVICE_WIN32_OWN_PROCESS;
+	ss.dwCurrentState		= SERVICE_START_PENDING;
+	ss.dwControlsAccepted	= SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+	ss.dwWin32ExitCode		= 0;
+	ss.dwServiceSpecificExitCode	= 0;
+	ss.dwCheckPoint			= 0;
+	ss.dwWaitHint			= 2000;
+
+	// tell the service controller initialization
+	if (FALSE == SetServiceStatus(s_hSC, &ss))
+	{
+		OutputDebugString("init fail");
+		return;
+	}
+
+	// tell the service controller started
+	ss.dwCurrentState		= SERVICE_RUNNING;
+	ss.dwWin32ExitCode		= 0;
+	ss.dwCheckPoint			= 0;
+	if (FALSE == SetServiceStatus(s_hSC, &ss))
+	{
+		OutputDebugString("start fail");
+		return;
+	}
+
+	s_onRun(argc, argv);
+
+	// tell the service controller stopped
+	ss.dwCurrentState		= SERVICE_STOPPED;
+	ss.dwWin32ExitCode		= 0;
+	ss.dwCheckPoint			= 3;
+	SetServiceStatus(s_hSC, &ss);
+	
+	s_onServiceStop();
 }
 
-bool WinService::BeginService(LPCTSTR serviceName, function<void()> onServiceStop)
+bool WinService::BeginService(LPCTSTR serviceName, std::function<void(DWORD argc, LPTSTR *argv)> onRun, std::function<void()> onServiceStop)
 {
-	m_serviceName	= serviceName;
-	m_onServiceStop = onServiceStop;
+	s_serviceName	= serviceName;
+	s_onRun			= onRun;
+	s_onServiceStop = onServiceStop;
 	
 	SERVICE_TABLE_ENTRY svTable[2];
-	svTable[0].lpServiceName	= (LPTSTR)m_serviceName.c_str();
+	svTable[0].lpServiceName	= (LPTSTR)s_serviceName.c_str();
 	svTable[0].lpServiceProc	= (LPSERVICE_MAIN_FUNCTION)ServiceMain;
 	svTable[1].lpServiceName	= NULL;
-	svTable[0].lpServiceProc	= NULL;
+	svTable[1].lpServiceProc	= NULL;
 	return StartServiceCtrlDispatcher(svTable) ? true : false;
 }
 
