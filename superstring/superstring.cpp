@@ -1,5 +1,6 @@
 #include "superstring.h"
-
+#include <cstring>
+#include <wchar.h>
 
 /**
  *  _____                 _____ _       _         
@@ -80,8 +81,6 @@ wstring sstr::join(const vector<wstring> &strings)
 	return join_impl<wchar_t>(strings);
 }
 
-
-
 template<class T>
 basic_string<T> format_impl(int (*func_snprintf)(T*, size_t, const T*, va_list), const T *fmt, va_list ap) 
 {
@@ -92,9 +91,9 @@ basic_string<T> format_impl(int (*func_snprintf)(T*, size_t, const T*, va_list),
 	{
 		str.resize(size);
 		int n = func_snprintf((T *)str.c_str(), size, fmt, ap);
-		va_end(ap);
 		if (n > -1 && n < size) 
 		{
+			va_end(ap);
 			str.resize(n);
 			return str;
 		}
@@ -102,8 +101,6 @@ basic_string<T> format_impl(int (*func_snprintf)(T*, size_t, const T*, va_list),
 			size = n + 1;
 		else
 			size *= 2;
-
-		va_start(ap, fmt);
 	}
 	return str;
 }
@@ -124,12 +121,20 @@ wstring sstr::format(const wchar_t *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	return format_impl(_vsnwprintf, fmt, ap);	
+#ifdef __unix__	
+	return format_impl(vswprintf, fmt, ap);	
+#elif defined _WIN32 || defined _WIN64
+	return format_impl(_vsnwprintf, fmt, ap);
+#endif
 }
 
 wstring sstr::format(const wchar_t *fmt, va_list al)
 {	
+#ifdef __unix__	
+	return format_impl(vswprintf, fmt, al);	
+#elif defined _WIN32 || defined _WIN64
 	return format_impl(_vsnwprintf, fmt, al);
+#endif
 }
 
 template<class T>
@@ -168,5 +173,10 @@ int sstr::toInt(const char *src)
 
 int sstr::toInt(const wchar_t *src)
 {
+#ifdef __unix__		
+	wchar_t *pEnd = NULL;
+	return (int)wcstol(src, &pEnd, 10);
+#elif defined _WIN32 || defined _WIN64
 	return _wtoi(src);
+#endif	
 }
