@@ -16,6 +16,33 @@
 #include <functional>
 #include <iterator>
 
+template<class StringT>
+struct Constants
+{
+	static const StringT *prodesc() { return NULL; }
+	static const StringT slash() { return NULL; }
+	static const StringT qsm() { return NULL; }
+	static const StringT amp() { return NULL; }
+};
+
+template<>
+struct Constants<wchar_t>
+{
+	static const wchar_t *prodesc() { return L"://"; }
+	static const wchar_t slash() { return L'/'; }
+	static const wchar_t qsm() { return L'/'; }
+	static const wchar_t amp() { return L'&'; }
+};
+
+template<>
+struct Constants<char>
+{
+	static const char *prodesc() { return "://"; }
+	static const char slash() { return '/'; }
+	static const char qsm() { return '/'; }
+	static const char amp() { return '&'; }
+};
+
 
 template<class StringT>
 class Url 
@@ -32,13 +59,13 @@ public:
 	std::basic_string<StringT> query(const StringT *key) const { return NULL; }
 	std::basic_string<StringT> query(const StringT *key, const StringT seperator) const
 	{
-		basic_string<StringT> ret;
-		const basic_string<StringT> sep = basic_string<StringT>(key) + seperator;
-		basic_string<StringT>::const_iterator it = search(m_query.begin(), m_query.end(), sep.begin(), sep.end());
+		std::basic_string<StringT> ret;
+		const std::basic_string<StringT> sep = std::basic_string<StringT>(key) + seperator;
+		typename std::basic_string<StringT>::const_iterator it = search(m_query.begin(), m_query.end(), sep.begin(), sep.end());
 		if (it == m_query.end())
 			return ret;
 		advance(it, sep.length());
-		basic_string<StringT>::const_iterator itEnd = find(it, m_query.end(), s_constants.amp());
+		typename std::basic_string<StringT>::const_iterator itEnd = find(it, m_query.end(), Constants<StringT>::amp());
 		ret.assign(it, itEnd);
 		return ret;
 	}
@@ -49,53 +76,24 @@ public:
 private:
     void parse(const StringT *url)
 	{
-		const basic_string<StringT> url_s = url;
-		const basic_string<StringT> prot_end(s_constants.prodesc());
+		const std::basic_string<StringT> url_s = url;
+		const std::basic_string<StringT> prot_end(Constants<StringT>::prodesc());
 		auto prot_i = search(url_s.begin(), url_s.end(), prot_end.begin(), prot_end.end());
 		m_protocol.reserve(distance(url_s.begin(), prot_i));
-		transform(url_s.begin(), prot_i, back_inserter(m_protocol), ptr_fun<int,int>(tolower)); // protocol is icase
+		std::transform(url_s.begin(), prot_i, back_inserter(m_protocol), std::ptr_fun<int,int>(tolower)); // protocol is icase
 		
 		if (prot_i == url_s.end()) return;
 
 		advance(prot_i, prot_end.length());
-		auto path_i = find(prot_i, url_s.end(), s_constants.slash());
+		auto path_i = find(prot_i, url_s.end(), Constants<StringT>::slash());
 		m_host.reserve(distance(prot_i, path_i));
-		transform(prot_i, path_i, back_inserter(m_host), ptr_fun<int,int>(tolower)); // host is icase
-		auto query_i = find(path_i, url_s.end(), s_constants.qsm());
+		std::transform(prot_i, path_i, back_inserter(m_host), std::ptr_fun<int,int>(tolower)); // host is icase
+		auto query_i = find(path_i, url_s.end(), Constants<StringT>::qsm());
 		m_path.assign(path_i, query_i);
 		if (query_i != url_s.end())	++query_i;
 		m_query.assign(query_i, url_s.end());
 	}
     std::basic_string<StringT> m_url, m_protocol, m_host, m_path, m_query;
-
-	template<class StringT>
-	struct Constants
-	{
-		const StringT *prodesc() { return NULL; }
-		const wchar_t slash() { return NULL; }
-		const wchar_t qsm() { return NULL; }
-		const wchar_t amp() { return NULL; }
-	};
-
-	template<>
-	struct Constants<wchar_t>
-	{
-		const wchar_t *prodesc() { return L"://"; }
-		const wchar_t slash() { return L'/'; }
-		const wchar_t qsm() { return L'/'; }
-		const wchar_t amp() { return L'&'; }
-	};
-
-	template<>
-	struct Constants<char>
-	{
-		const char *prodesc() { return "://"; }
-		const char slash() { return '/'; }
-		const char qsm() { return '/'; }
-		const char amp() { return '&'; }
-	};
-
-	static struct Constants<StringT> s_constants;
 };
 
 #endif

@@ -5,10 +5,9 @@
 #include <functional>
 #include <iterator>
 
+
 using namespace std;
 
-Url<wchar_t>::Constants<wchar_t> Url<wchar_t>::s_constants;
-Url<char>::Constants<char> Url<char>::s_constants;
 
 template basic_string<char> Url<char>::encode(const string &src, bool bRemoveDoubleQuote);
 basic_string<char> Url<char>::encode(const string &src, bool bRemoveDoubleQuote)
